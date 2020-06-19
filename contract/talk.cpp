@@ -1,47 +1,44 @@
 #include <eosio/eosio.hpp>
-
-// Message table
-struct [[eosio::table("message"), eosio::contract("talk")]] message {
-    uint64_t    id       = {}; // Non-0
-    uint64_t    reply_to = {}; // Non-0 if this is a reply
-    eosio::name user     = {};
-    std::string content  = {};
-
-    uint64_t primary_key() const { return id; }
-    uint64_t get_reply_to() const { return reply_to; }
-};
-
-using message_table = eosio::multi_index<
-    "message"_n, message, eosio::indexed_by<"by.reply.to"_n, eosio::const_mem_fun<message, uint64_t, &message::get_reply_to>>>;
-
+#include <eosio/asset.hpp>
+#include <vector>
+using namespace eosio;
 // The contract
-class talk : eosio::contract {
+class [[eosio::contract]] talk:public contract  {
   public:
     // Use contract's constructor
     using contract::contract;
+    struct helpingStruct{
+        name accountName;
+        float workPart;
+    };
 
     // Post a message
-    [[eosio::action]] void post(uint64_t id, uint64_t reply_to, eosio::name user, const std::string& content) {
-        message_table table{get_self(), 0};
-
-        // Check user
-        require_auth(user);
-
-        // Check reply_to exists
-        if (reply_to)
-            table.get(reply_to);
-
-        // Create an ID if user didn't specify one
-        eosio::check(id < 1'000'000'000ull, "user-specified id is too big");
-        if (!id)
-            id = std::max(table.available_primary_key(), 1'000'000'000ull);
-
-        // Record the message
-        table.emplace(get_self(), [&](auto& message) {
-            message.id       = id;
-            message.reply_to = reply_to;
-            message.user     = user;
-            message.content  = content;
-        });
+    [[eosio::on_notify("eosio.token::transfer")]] 
+    void got(
+                    const name& from,
+                    const name&    to,
+                    const asset&   quantity,
+                    const std::string&  memo)
+    {
+       if(quantity.symbol.code().to_string()!="ILI")return;
+       check(to==get_self(),"err");
+       check(quantity.amount>0,"err");
+       
+       //print("recieved:",quantity.amount>0);
     }
+    [[eosio::action]]
+    void distribute(float salary,std::vector<helpingStruct> res){
+        
+        for(auto i:res){
+            asset quantity = asset( salary*i.workPart, symbol("EOS",4));
+            
+            action(
+                permission_level{ _self, "active"_n },
+               "eosio.token"_n, "transfer"_n,
+               std::make_tuple(_self, i.accountName, quantity, std::string("info"))
+            ).send();
+
+        }
+
+    } 
 };

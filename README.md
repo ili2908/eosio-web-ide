@@ -31,7 +31,7 @@ To open a terminal, use the Terminal drop-down menu in the IDE user interface.
 The source code for the sample smartcontract is at `contract/talk.cpp` within the IDE. To compile the contract, run this in a terminal:
 
 ```
-eosio-cpp contract/talk.cpp
+ 
 
 ```
 
@@ -117,7 +117,7 @@ To remove the existing chain and create another:
 
 ```
 rm -rf ~/eosio/chain
-nodeos --config-dir ~/eosio/chain/config --data-dir ~/eosio/chain/data -e -p eosio --plugin eosio::chain_api_plugin
+nodeos --config-dir ~/eosio/chain/config --data-dir ~/eosio/chain/data -e -p eosio --plugin eosio::chain_api_plugin --contracts-console
 
 ```
 
