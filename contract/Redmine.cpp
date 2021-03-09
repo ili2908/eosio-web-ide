@@ -41,7 +41,7 @@ class [[eosio::contract]] talk:public contract  {
         
             EOSLIB_SERIALIZE(hours,(id)(project)(hours)(salary));
         }
-        struct [[eosio::table]] projects{
+        
         using hours_table = eosio::multi_index<name("workload"),hours>;
         using projects_table = eosio::multi_index<name("projects"),hours>;
         
