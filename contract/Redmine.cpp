@@ -43,12 +43,17 @@ class [[eosio::contract]] Redmine:public contract  {
             //EOSLIB_SERIALIZE(hours,(id)(project)(hours)(salary));
         };
         
+
+        struct worker{
+            name account;
+            float hours;
+        };
         using hours_table = eosio::multi_index<name("workload"),hours>;
         using projects_table = eosio::multi_index<name("projects"),projects>;
         
         
         [[eosio::action]]
-        void add(const name& person,const float workHours,const uint64_t& project_id){
+        void add(std::vector<worker> workers,const uint64_t project_id){
             //check(has_auth(name("someName")),"not authorized");
             hours_table hTable(get_self(),project_id);
             projects_table pTable(get_self(),get_self().value);
@@ -57,34 +62,37 @@ class [[eosio::contract]] Redmine:public contract  {
             if(prj==pTable.end()){
                 pTable.emplace(get_self(),[&](auto& new_row){
                     new_row.id = project_id;
-                    new_row.hours = workHours;
+                    new_row.hours = 0;
                     new_row.salary = asset(0.0,symbol("EOS",4));
                     new_row.finalized = false;
                     
                 });  
             }
-            else{
-                pTable.modify(prj,get_self(),[&](auto& new_row){
-                    new_row.hours+=workHours;
-                });
-            }
+            
+            
+            
             //emplace or modify worker table
-            auto worker = hTable.find(person.value);
-            if(worker==hTable.end()){
-                hTable.emplace(get_self(),[&](auto& new_row){
-                    new_row.worker = person;
-                    new_row.hours=workHours;
+            float workHours=0.0;
+            for(auto w :workers){
+                auto worker = hTable.find(w.account.value);
+                if(worker==hTable.end()){
+                    hTable.emplace(get_self(),[&](auto& new_row){
+                        new_row.worker = w.account;
+                        new_row.hours=w.hours;
 
-                });
+                    });
 
+                }
+                else{
+                    hTable.modify(worker,get_self(),[&](auto& new_row){
+                        new_row.hours+=w.hours;
+                    });
+                }
+                workHours+=w.hours;
             }
-            else{
-                hTable.modify(worker,get_self(),[&](auto& new_row){
+            pTable.modify(prj,get_self(),[&](auto& new_row){
                     new_row.hours+=workHours;
-                });
-            }
-
-
+            });
         }
         [[eosio::action]]
         void finallize(uint64_t& project_id){
