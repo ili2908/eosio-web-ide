@@ -139,15 +139,22 @@ class [[eosio::contract]] Redmine:public contract  {
             hours_table hTable(get_self(),project);
             auto itr = hTable.cbegin();
             for(;itr!=hTable.cend();itr++){
-                asset salary = asset(quantity.amount * ((itr->hours)/hours) , symbol("EOS",4));
-            
-                action(
-                    permission_level{ _self, "active"_n },
-                    "eosio.token"_n, "transfer"_n,
-                    std::make_tuple(_self, itr->worker, salary, std::string("salary"))
-                ).send();
+                asset salary = asset(quantity.amount * ((itr->hours)/hours) , quantity.symbol);
+                token = symbol.code.to_string();
+                if(token=="EOS"){
+                    action(
+                        permission_level{ _self, "active"_n },
+                        "eosio.token"_n, "transfer"_n,
+                        std::make_tuple(_self, itr->worker, salary, std::string("salary"))
+                    ).send();
+                }else if(token=="DGT"){
+                    action(
+                        permission_level{ _self, "active"_n },
+                        "DGT_contract"_n, "transfer"_n,
+                        std::make_tuple(_self, itr->worker, salary, std::string("salary"))
+                    ).send();
+                }
             }
-
 
         }
 };
