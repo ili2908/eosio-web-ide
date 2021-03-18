@@ -109,8 +109,6 @@ class [[eosio::contract]] Redmine:public contract  {
             
             //check(has_auth(name("someName")),"not authorized");
         }
-        
-        [[eosio::on_notify("eosio.token::transfer")]] 
         void paid(const name& from,const name& to,const asset&  quantity,const std::string& memo){
             if(to!=get_self())return;
             
@@ -134,6 +132,16 @@ class [[eosio::contract]] Redmine:public contract  {
                 distribute(std::stoi(memo),quantity,prj->hours);
             }
         }
+        [[eosio::on_notify("eosio.token::transfer")]] 
+        void paidTNT(const name& from,const name& to,const asset&  quantity,const std::string& memo){
+            paid(from,to,quantity,memo);
+        }
+
+        [[eosio::on_notify("DGT_contract::transfer")]]
+        void paidDGT(const name& from,const name& to,const asset&  quantity,const std::string& memo){
+            paid(from,to,quantity,memo);
+        } 
+        
         //[[eosio::action]]
         void distribute(uint64_t project,asset quantity,float hours){
             hours_table hTable(get_self(),project);
