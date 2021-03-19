@@ -112,6 +112,13 @@ class [[eosio::contract]] Redmine:public contract  {
             //check(has_auth(name("someName")),"not authorized");
         }
         [[eosio::action]]
+        void finadd(std::vector<worker> workers,const uint64_t project_id){
+            add(workers,project_id);
+            finallize(project_id);
+
+
+        }
+        [[eosio::action]]
         void refsend(const name& referal,const name& to,const asset&  quantity,float ratio){
             symbol token = quantity.symbol;
             asset reffee = asset(quantity.amount*ratio,token);
