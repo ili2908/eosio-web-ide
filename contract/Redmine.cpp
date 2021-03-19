@@ -54,6 +54,7 @@ class [[eosio::contract]] Redmine:public contract  {
         
         [[eosio::action]]
         void add(std::vector<worker> workers,const uint64_t project_id){
+            check(has_auth(get_self()),"not authorized");
             //check(has_auth(name("someName")),"not authorized");
             hours_table hTable(get_self(),project_id);
             projects_table pTable(get_self(),get_self().value);
@@ -90,13 +91,14 @@ class [[eosio::contract]] Redmine:public contract  {
                 }
                 workHours+=w.hours;
             }
+            prj = pTable.find(project_id);
             pTable.modify(prj,get_self(),[&](auto& new_row){
                     new_row.hours+=workHours;
             });
         }
         [[eosio::action]]
         void finallize(uint64_t& project_id){
-            //check(has_auth(name("someName")),"not authorized");
+            check(has_auth(get_self()),"not authorized");
             projects_table pTable(get_self(),get_self().value);
             auto prj = pTable.find(project_id);
             pTable.modify(prj,get_self(),[&](auto& new_row){
@@ -108,6 +110,36 @@ class [[eosio::contract]] Redmine:public contract  {
                 
             
             //check(has_auth(name("someName")),"not authorized");
+        }
+        [[eosio::action]]
+        void refsend(const name& referal,const name& to,const asset&  quantity,float ratio){
+            symbol token = quantity.symbol;
+            asset reffee = asset(quantity.amount*ratio,token);
+            asset fee = asset(quantity.amount- reffee.amount,token);
+            if(token==symbol("TNT",4)){
+                    action(
+                        permission_level{ _self, "active"_n },
+                        "eosio.token"_n, "transfer"_n,
+                        std::make_tuple(_self, to,fee , std::string("edex"))
+                    ).send();
+                    action(
+                        permission_level{ _self, "active"_n },
+                        "eosio.token"_n, "transfer"_n,
+                        std::make_tuple(_self, referal,reffee , std::string("referal fee:")+to.to_string())
+                    ).send();
+                }else if(token==symbol("DGT",4)){
+                    action(
+                        permission_level{ _self, "active"_n },
+                        "mehosimjvkkw"_n, "transfer"_n,
+                        std::make_tuple(_self, to, fee, std::string("edex"))
+                    ).send();
+                     action(
+                        permission_level{ _self, "active"_n },
+                        "mehosimjvkkw"_n, "transfer"_n,
+                        std::make_tuple(_self, referal, reffee, std::string("referal fee:")+to.to_string())
+                    ).send();
+                }
+
         }
         void paid(const name& from,const name& to,const asset&  quantity,const std::string& memo){
             if(to!=get_self())return;
@@ -133,12 +165,12 @@ class [[eosio::contract]] Redmine:public contract  {
             }
         }
         [[eosio::on_notify("eosio.token::transfer")]] 
-        void paidTNT(const name& from,const name& to,const asset&  quantity,const std::string& memo){
+        void paidtnt(const name& from,const name& to,const asset&  quantity,const std::string& memo){
             paid(from,to,quantity,memo);
         }
 
-        [[eosio::on_notify("DGT_contract::transfer")]]
-        void paidDGT(const name& from,const name& to,const asset&  quantity,const std::string& memo){
+        [[eosio::on_notify("mehosimjvkkw::transfer")]]
+        void paiddgt(const name& from,const name& to,const asset&  quantity,const std::string& memo){
             paid(from,to,quantity,memo);
         } 
         
@@ -146,19 +178,21 @@ class [[eosio::contract]] Redmine:public contract  {
         void distribute(uint64_t project,asset quantity,float hours){
             hours_table hTable(get_self(),project);
             auto itr = hTable.cbegin();
+            symbol token = quantity.symbol;
+            //print(token);
             for(;itr!=hTable.cend();itr++){
                 asset salary = asset(quantity.amount * ((itr->hours)/hours) , quantity.symbol);
-                token = symbol.code.to_string();
-                if(token=="EOS"){
+                
+                if(token==symbol("TNT",4)){
                     action(
                         permission_level{ _self, "active"_n },
                         "eosio.token"_n, "transfer"_n,
                         std::make_tuple(_self, itr->worker, salary, std::string("salary"))
                     ).send();
-                }else if(token=="DGT"){
+                }else if(token==symbol("DGT",4)){
                     action(
                         permission_level{ _self, "active"_n },
-                        "DGT_contract"_n, "transfer"_n,
+                        "mehosimjvkkw"_n, "transfer"_n,
                         std::make_tuple(_self, itr->worker, salary, std::string("salary"))
                     ).send();
                 }
